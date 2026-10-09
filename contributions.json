@@ -1,0 +1,17 @@
+{
+  "verified_on": "2026-10-09",
+  "inclusion_policy": "completed_approved_merged",
+  "contributions": [
+    {
+      "project": "home-assistant/core",
+      "pr": 185519,
+      "status": "merged",
+      "merged_at": "2026-10-09T17:45:54Z",
+      "implementation_commit": "60e4b9f88f6d74122e742bf15d4481e49e888433",
+      "merge_commit": "4a9e5638a2ef299ddb0021f2ccd1a94122f5618b",
+      "ci_run": 37962899805,
+      "ci_conclusion": "success",
+      "integration_tests_passed": 17
+    }
+  ]
+}
