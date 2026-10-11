@@ -1,0 +1,4 @@
+remark 0
+textlint 0
+diff-check 0
+docs-metadata 0

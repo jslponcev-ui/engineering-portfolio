@@ -1,0 +1,307 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 1017b2d..a809a15 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
+ 
+ ## [Unreleased]
+ 
++### Added
++- `get_master_mac_devices()` returns typed `MasterMacDevice` clients using the
++  legacy `format=master_mac|hostname|is_online` query. It preserves master-MAC
++  identity, uppercases MAC addresses, and treats missing online flags as offline.
++  Malformed lists raise `FortiOSResponseError` instead of returning an empty scan.
++
++### Fixed
++- `get_system_status()` and the new master-MAC method reject invalid/error
++  envelopes and map embedded HTTP 401/403 failures to authentication errors.
++
+ ## [0.1.0] - 2026-08-26
+ 
+ ### Added
+diff --git a/README.md b/README.md
+index 39b6822..2937b59 100644
+--- a/README.md
++++ b/README.md
+@@ -70,10 +70,20 @@ client = FortiOSClient(..., device_online_threshold=600)
+ 
+ ## Scope
+ 
++### Master-MAC clients
++
++`await client.get_master_mac_devices()` uses the legacy Home Assistant
++`format=master_mac|hostname|is_online` monitor query and returns typed
++`MasterMacDevice` objects. Their `mac` field comes only from `master_mac` and is
++uppercased; it is never replaced with the separate `mac` field. Missing online
++flags mean offline, without the `DetectedDevice` freshness fallback. Invalid
++response lists raise `FortiOSResponseError`, while an actual empty list returns
++an empty scan. The caller continues to own the HTTP session.
++
+ `aiofortiosapi` is intentionally minimal:
+ 
+-- **Three typed monitor endpoints** (`get_system_status`, `get_resource_usage`,
+-  `get_detected_devices`) used by the Home Assistant integration.
++- **Typed monitor methods** (`get_system_status`, `get_resource_usage`,
++  `get_detected_devices`, `get_master_mac_devices`) for Home Assistant integrations.
+ - A generic `get(path)` for any other endpoint that returns the raw JSON envelope.
+ - **No** config-write, CMDB, file upload, SSH fallback, or CLI helpers.
+ - **No** session/cookie login flow — Bearer token only.
+diff --git a/src/aiofortiosapi/__init__.py b/src/aiofortiosapi/__init__.py
+index bc3724b..5073215 100644
+--- a/src/aiofortiosapi/__init__.py
++++ b/src/aiofortiosapi/__init__.py
+@@ -9,7 +9,7 @@ from .exceptions import (
+     FortiOSNotFoundError,
+     FortiOSResponseError,
+ )
+-from .models import DetectedDevice, ResourceUsage, SystemStatus
++from .models import DetectedDevice, MasterMacDevice, ResourceUsage, SystemStatus
+ 
+ __version__ = "0.1.0"
+ 
+@@ -25,6 +25,7 @@ __all__ = [
+     "SystemStatus",
+     "ResourceUsage",
+     "DetectedDevice",
++    "MasterMacDevice",
+     # constants
+     "DEFAULT_ONLINE_THRESHOLD",
+     "__version__",
+diff --git a/src/aiofortiosapi/client.py b/src/aiofortiosapi/client.py
+index 00992f4..9ac2231 100644
+--- a/src/aiofortiosapi/client.py
++++ b/src/aiofortiosapi/client.py
+@@ -24,7 +24,7 @@ from .exceptions import (
+     FortiOSNotFoundError,
+     FortiOSResponseError,
+ )
+-from .models import DetectedDevice, ResourceUsage, SystemStatus
++from .models import DetectedDevice, MasterMacDevice, ResourceUsage, SystemStatus
+ 
+ _LOGGER = logging.getLogger(__name__)
+ 
+@@ -40,6 +40,15 @@ _ERROR_DETAIL_KEYS: tuple[str, ...] = (
+ _ERROR_DETAIL_MAX_CHARS = 200
+ 
+ 
++def _validate_response(raw: Any) -> dict[str, Any]:
++    """Reject failed envelopes even when the HTTP response succeeds."""
++    if isinstance(raw, dict) and raw.get("http_status") in (401, 403):
++        raise FortiOSAuthenticationError("FortiOS authentication failed")
++    if not isinstance(raw, dict) or raw.get("status") == "error":
++        raise FortiOSResponseError("Invalid FortiOS response")
++    return raw
++
++
+ def _extract_error_detail(body_text: str) -> str:
+     """Return the most useful human-readable string from an error body.
+ 
+@@ -168,7 +177,7 @@ class FortiOSClient:
+ 
+     async def get_system_status(self) -> SystemStatus:
+         """Return basic device identity: hostname, version, serial, model."""
+-        raw = await self._request("GET", EP_SYSTEM_STATUS)
++        raw = _validate_response(await self._request("GET", EP_SYSTEM_STATUS))
+         return SystemStatus.from_api(raw)
+ 
+     async def get_resource_usage(self) -> ResourceUsage:
+@@ -190,6 +199,22 @@ class FortiOSClient:
+             online_threshold=self._device_online_threshold,
+         )
+ 
++    async def get_master_mac_devices(self) -> list[MasterMacDevice]:
++        """Read master-MAC clients using the legacy Home Assistant query.
++
++        Preserve ``master_mac`` identity and the API's online flag. Missing
++        flags mean offline, without the detected-device freshness fallback.
++        Malformed lists raise instead of appearing as a successful empty scan.
++        """
++        raw = _validate_response(
++            await self._request(
++                "GET",
++                EP_DETECTED_DEVICES,
++                params={"filter": "format=master_mac|hostname|is_online"},
++            )
++        )
++        return MasterMacDevice.list_from_api(raw)
++
+     async def async_validate(self) -> SystemStatus:
+         """Validate credentials cheaply by calling get_system_status.
+ 
+diff --git a/src/aiofortiosapi/models.py b/src/aiofortiosapi/models.py
+index fc532c4..c1ff2b4 100644
+--- a/src/aiofortiosapi/models.py
++++ b/src/aiofortiosapi/models.py
+@@ -4,9 +4,9 @@ FortiOS wraps all payloads as:
+   {"results": <dict|list>, "status": "success", "version": "v7.6.1",
+    "serial": "FGT60F...", "vdom": "root", ...}
+ 
+-Each model's from_api() accepts the full envelope dict and parses defensively:
+-missing keys, null values, and unexpected shapes all fall back to safe
+-defaults instead of raising.
++Most models accept the full envelope dict and parse defensively: missing keys,
++null values, and unexpected shapes fall back to safe defaults. MasterMacDevice
++validates client lists strictly so malformed responses do not look like empty scans.
+ """
+ 
+ from __future__ import annotations
+@@ -16,6 +16,7 @@ from dataclasses import dataclass
+ from typing import Any
+ 
+ from .const import DEFAULT_ONLINE_THRESHOLD
++from .exceptions import FortiOSResponseError
+ 
+ 
+ def _first(lst: Any, key: str, default: Any = None) -> Any:
+@@ -110,6 +111,38 @@ class ResourceUsage:
+         )
+ 
+ 
++@dataclass(frozen=True, slots=True)
++class MasterMacDevice:
++    """A client identified by the master MAC from the filtered monitor query."""
++
++    mac: str
++    hostname: str | None
++    is_online: bool
++
++    @classmethod
++    def list_from_api(cls, raw: dict[str, Any]) -> list[MasterMacDevice]:
++        """Parse a strict client list without substituting the ``mac`` field."""
++        results = raw.get("results")
++        if not isinstance(results, list):
++            raise FortiOSResponseError("Invalid FortiOS device list")
++        devices = []
++        for entry in results:
++            if not isinstance(entry, dict):
++                raise FortiOSResponseError("Invalid FortiOS device")
++            mac = entry.get("master_mac")
++            if not isinstance(mac, str) or not mac:
++                continue
++            hostname = entry.get("hostname")
++            devices.append(
++                cls(
++                    mac=mac.upper(),
++                    hostname=hostname if isinstance(hostname, str) else None,
++                    is_online=bool(entry.get("is_online", False)),
++                )
++            )
++        return devices
++
++
+ @dataclass(frozen=True, slots=True)
+ class DetectedDevice:
+     """A single device from monitor/user/device/query.
+diff --git a/tests/test_master_mac.py b/tests/test_master_mac.py
+new file mode 100644
+index 0000000..7fcd089
+--- /dev/null
++++ b/tests/test_master_mac.py
+@@ -0,0 +1,107 @@
++"""Regression tests for the legacy master-MAC monitor query."""
++
++from __future__ import annotations
++
++from typing import Any
++
++import aiohttp
++import pytest
++from aresponses import ResponsesMockServer
++
++from aiofortiosapi import FortiOSAuthenticationError, FortiOSResponseError, MasterMacDevice
++from aiofortiosapi.const import EP_DETECTED_DEVICES, EP_SYSTEM_STATUS
++
++from .conftest import FAKE_HOST, FAKE_TOKEN, json_response, make_client
++
++
++@pytest.mark.asyncio
++async def test_master_mac_query(aresponses: ResponsesMockServer) -> None:
++    """Preserve master identity and online flags across one authenticated query."""
++    received: list[tuple[str, str, str]] = []
++
++    async def capture(request: aiohttp.web.Request) -> aiohttp.web.Response:
++        received.append(
++            (request.query["filter"], request.query["vdom"], request.headers["Authorization"])
++        )
++        return json_response(
++            {
++                "results": [
++                    {
++                        "master_mac": "aa:bb:cc:dd:ee:ff",
++                        "mac": "11:22:33:44:55:66",
++                        "hostname": "phone",
++                        "is_online": True,
++                    },
++                    {"master_mac": "22:33:44:55:66:77", "hostname": 1, "is_online": False},
++                    {"master_mac": "33:44:55:66:77:88", "last_seen": 9999999999},
++                    {"mac": "44:55:66:77:88:99", "is_online": True},
++                    {"master_mac": ""},
++                    {"master_mac": 123},
++                ]
++            }
++        )
++
++    aresponses.add(FAKE_HOST, f"/{EP_DETECTED_DEVICES}", "GET", capture)
++    async with aiohttp.ClientSession() as session:
++        devices = await make_client(session, vdom="root").get_master_mac_devices()
++        assert not session.closed
++    assert received == [("format=master_mac|hostname|is_online", "root", f"Bearer {FAKE_TOKEN}")]
++    assert devices == [
++        MasterMacDevice("AA:BB:CC:DD:EE:FF", "phone", True),
++        MasterMacDevice("22:33:44:55:66:77", None, False),
++        MasterMacDevice("33:44:55:66:77:88", None, False),
++    ]
++
++
++@pytest.mark.asyncio
++async def test_master_mac_empty_scan(aresponses: ResponsesMockServer) -> None:
++    """An actual empty list is a successful scan."""
++    aresponses.add(FAKE_HOST, f"/{EP_DETECTED_DEVICES}", "GET", json_response({"results": []}))
++    async with aiohttp.ClientSession() as session:
++        assert await make_client(session).get_master_mac_devices() == []
++
++
++@pytest.mark.parametrize(
++    "payload",
++    [None, [], {}, {"status": "error"}, {"results": None}, {"results": {}}, {"results": [None]}],
++)
++@pytest.mark.asyncio
++async def test_master_mac_invalid_scan(aresponses: ResponsesMockServer, payload: Any) -> None:
++    """Malformed responses must not turn online clients into an empty scan."""
++    aresponses.add(FAKE_HOST, f"/{EP_DETECTED_DEVICES}", "GET", json_response(payload))
++    async with aiohttp.ClientSession() as session:
++        with pytest.raises(FortiOSResponseError):
++            await make_client(session).get_master_mac_devices()
++
++
++@pytest.mark.parametrize("endpoint", [EP_DETECTED_DEVICES, EP_SYSTEM_STATUS])
++@pytest.mark.parametrize("http_status", [401, 403])
++@pytest.mark.asyncio
++async def test_embedded_authentication_failure(
++    aresponses: ResponsesMockServer, endpoint: str, http_status: int
++) -> None:
++    """HTTP-success error envelopes retain the authentication error category."""
++    aresponses.add(
++        FAKE_HOST,
++        f"/{endpoint}",
++        "GET",
++        json_response({"status": "error", "http_status": http_status}),
++    )
++    async with aiohttp.ClientSession() as session:
++        client = make_client(session)
++        methods = {
++            EP_DETECTED_DEVICES: client.get_master_mac_devices,
++            EP_SYSTEM_STATUS: client.get_system_status,
++        }
++        with pytest.raises(FortiOSAuthenticationError):
++            await methods[endpoint]()
++
++
++@pytest.mark.parametrize("payload", [None, [], {"status": "error"}])
++@pytest.mark.asyncio
++async def test_invalid_system_envelope(aresponses: ResponsesMockServer, payload: Any) -> None:
++    """The typed status method rejects envelopes the Core adapter previously rejected."""
++    aresponses.add(FAKE_HOST, f"/{EP_SYSTEM_STATUS}", "GET", json_response(payload))
++    async with aiohttp.ClientSession() as session:
++        with pytest.raises(FortiOSResponseError):
++            await make_client(session).get_system_status()

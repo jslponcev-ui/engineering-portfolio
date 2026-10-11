@@ -1,0 +1,4 @@
+typed-adapter-tests 0
+typed-adapter-mypy 0
+typed-adapter-ruff 0
+typed-adapter-format 0

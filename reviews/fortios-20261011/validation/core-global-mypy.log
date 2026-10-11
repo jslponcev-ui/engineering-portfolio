@@ -1,0 +1,11 @@
+mypy.....................................................................Failed
+- hook id: mypy
+- exit code: 2
+
+  homeassistant/util/event_type.py: error: Duplicate module named "homeassistant.util.event_type" (also at "homeassistant/util/event_type.pyi")
+  homeassistant/util/event_type.py: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#mapping-file-paths-to-modules for more info
+  homeassistant/util/event_type.py: note: Common resolutions include:
+  homeassistant/util/event_type.py: note:     a) using `--exclude` to avoid checking one of them,
+  homeassistant/util/event_type.py: note:     b) adding `__init__.py` somewhere,
+  homeassistant/util/event_type.py: note:     c) using `--explicit-package-bases` or adjusting `MYPYPATH`
+  Found 1 error in 1 file (errors prevented further checking)

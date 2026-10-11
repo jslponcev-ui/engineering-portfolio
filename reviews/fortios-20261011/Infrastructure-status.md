@@ -1,0 +1,9 @@
+# Estado de las comprobaciones globales
+
+Se ejecutó `uv run --no-sync prek run --all-files` en el entorno montado por script/setup. La ejecución no completó y su log no contiene resultados finales de hooks. Durante ella hubo errores `Wsl/Service/WSAETIMEDOUT` al intentar inspeccionar procesos, y el disco C: llegó a aproximadamente 30 MB libres. Se retiraron únicamente cachés generadas de npm/pnpm y el work/uv-cache temporal del intento histórico, comprobando sus rutas dentro del workspace. No se borraron repositorios, cambios locales ni historial. Se interrumpió el proceso de comprobación propio; no se forzó shutdown global de WSL.
+
+Tras recuperar espacio y acceso, las pruebas del adaptador y los hooks oficiales sobre los cuatro archivos modificados finalizaron correctamente. No quedaban procesos prek/pylint en la inspección posterior. La causa de los fallos iniciales de teardown del adaptador fue comprobada mediante traceback: faltaban traducciones en el checkout experimental. Generar las traducciones con el comando oficial resolvió esas pruebas sin modificar assertions.
+
+Se ejecutó por separado `uv run --no-sync prek run mypy --all-files`, sin alterar su configuración. Devuelve exit 2 por módulos duplicados `homeassistant/util/event_type.py` y `.pyi`, archivos ajenos al cambio. Es un fallo del alcance/configuración de la invocación global, no un error de los archivos de FortiOS; Mypy sobre FortiOS y el hook sobre archivos modificados pasan. No se excluyeron archivos ni se modificó el check para conseguir verde.
+
+No hay diagnóstico confirmado de OOM. No se ha completado todo prek global ni se afirma que todos los checks del proyecto pasan. No se ejecutó build completo del sitio de documentación. La matriz de biblioteca Python 3.12/3.13 y CI del nuevo SHA esperan publicación/entorno correspondiente.

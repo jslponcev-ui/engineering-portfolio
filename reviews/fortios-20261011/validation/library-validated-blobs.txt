@@ -1,0 +1,6 @@
+a809a15aba98328e5bd29e5670ff7d5f79c40945 CHANGELOG.md
+2937b59adecc711bce85e1a7f9d5ce8d15edb856 README.md
+5073215bb408f787fd197ecdc0559119a7583e63 src/aiofortiosapi/__init__.py
+9ac2231fc2f3e6df9f2b87f4b3d45acb3e433e09 src/aiofortiosapi/client.py
+c1ff2b400467bfd6741ce74168a9b25cd23b357f src/aiofortiosapi/models.py
+7fcd089b2e7f334cea7fa79dcdd7eec80d24fdf5 tests/test_master_mac.py

@@ -1,0 +1,71 @@
+diff --git a/homeassistant/components/fortios/client.py b/homeassistant/components/fortios/client.py
+index 749221cf80..67869aa154 100644
+--- a/homeassistant/components/fortios/client.py
++++ b/homeassistant/components/fortios/client.py
+@@ -3,12 +3,7 @@
+ from dataclasses import dataclass
+ from typing import Any
+ 
+-from aiofortiosapi import (
+-    FortiOSAuthenticationError,
+-    FortiOSClient as FortiOSAPI,
+-    FortiOSResponseError,
+-    SystemStatus,
+-)
++from aiofortiosapi import FortiOSClient as FortiOSAPI, FortiOSResponseError
+ from awesomeversion import AwesomeVersion
+ from awesomeversion.exceptions import AwesomeVersionException
+ from yarl import URL
+@@ -66,10 +61,7 @@ class FortiOSClient:
+ 
+     async def connect(self) -> str:
+         """Authenticate and validate device identity and firmware."""
+-        response = self.check_response(
+-            await self.api.get("api/v2/monitor/system/status")
+-        )
+-        status = SystemStatus.from_api(response)
++        status = await self.api.get_system_status()
+         if not status.serial or not status.version:
+             raise FortiOSResponseError("Missing FortiOS device identity or version")
+         try:
+@@ -84,35 +76,8 @@ class FortiOSClient:
+         return self.serial
+ 
+     async def update(self) -> dict[str, FortiOSDevice]:
+-        """Read all clients using the legacy master-MAC query format."""
+-        response = self.check_response(
+-            await self.api.get(
+-                "api/v2/monitor/user/device/query",
+-                params={"filter": "format=master_mac|hostname|is_online"},
+-            )
+-        )
+-        if not isinstance(clients := response.get("results"), list):
+-            raise FortiOSResponseError("Invalid FortiOS device list")
+-        devices = {}
+-        for client in clients:
+-            if not isinstance(client, dict):
+-                raise FortiOSResponseError("Invalid FortiOS device")
+-            if not isinstance(mac := client.get("master_mac"), str) or not mac:
+-                continue
+-            mac = mac.upper()
+-            hostname = client.get("hostname")
+-            devices[mac] = FortiOSDevice(
+-                mac,
+-                hostname if isinstance(hostname, str) else None,
+-                bool(client.get("is_online", False)),
+-            )
+-        return devices
+-
+-    @staticmethod
+-    def check_response(response: Any) -> dict[str, Any]:
+-        """Reject malformed or failed envelopes before parsing their data."""
+-        if isinstance(response, dict) and response.get("http_status") in (401, 403):
+-            raise FortiOSAuthenticationError("FortiOS authentication failed")
+-        if not isinstance(response, dict) or response.get("status") == "error":
+-            raise FortiOSResponseError("Invalid FortiOS response")
+-        return response
++        """Adapt the library's typed master-MAC clients for shared polling."""
++        return {
++            device.mac: FortiOSDevice(device.mac, device.hostname, device.is_online)
++            for device in await self.api.get_master_mac_devices()
++        }

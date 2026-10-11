@@ -1,0 +1,41 @@
+{
+  "scope": "Fork branches for review only; no upstream submission authorized",
+  "commits": [
+    {
+      "repo": "jslponcev-ui/core",
+      "branch": "work/fortios-firmware-recovery-20261011",
+      "sha": "1299fb759270388a4c785d5e136c2ae444bbcfd3",
+      "base": "957f0aa283db4a245f3780869945af1a02f19df0",
+      "matches_local": true,
+      "commit_url": "https://github.com/jslponcev-ui/core/commit/1299fb759270388a4c785d5e136c2ae444bbcfd3",
+      "compare_url": "https://github.com/jslponcev-ui/core/compare/957f0aa283db4a245f3780869945af1a02f19df0...1299fb759270388a4c785d5e136c2ae444bbcfd3",
+      "ahead_by": 1,
+      "behind_by": 0,
+      "files": 4
+    },
+    {
+      "repo": "jslponcev-ui/aiofortiosapi",
+      "branch": "work/master-mac-devices-20261011",
+      "sha": "707f2495f2609c7c1a8d5213142fbcefda45993c",
+      "base": "e0f5673b8c596972789bbb9eef654b60e6f21aab",
+      "matches_local": true,
+      "commit_url": "https://github.com/jslponcev-ui/aiofortiosapi/commit/707f2495f2609c7c1a8d5213142fbcefda45993c",
+      "compare_url": "https://github.com/jslponcev-ui/aiofortiosapi/compare/e0f5673b8c596972789bbb9eef654b60e6f21aab...707f2495f2609c7c1a8d5213142fbcefda45993c",
+      "ahead_by": 1,
+      "behind_by": 0,
+      "files": 6
+    },
+    {
+      "repo": "jslponcev-ui/home-assistant.io",
+      "branch": "work/fortios-migration-docs-20261011",
+      "sha": "bbcb53e6d1b72d761cca1dbb68db039e675ba75d",
+      "base": "811af7b806b0913702ca0f3b30c50c3ba53fb01f",
+      "matches_local": true,
+      "commit_url": "https://github.com/jslponcev-ui/home-assistant.io/commit/bbcb53e6d1b72d761cca1dbb68db039e675ba75d",
+      "compare_url": "https://github.com/jslponcev-ui/home-assistant.io/compare/811af7b806b0913702ca0f3b30c50c3ba53fb01f...bbcb53e6d1b72d761cca1dbb68db039e675ba75d",
+      "ahead_by": 1,
+      "behind_by": 0,
+      "files": 1
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+uv run --no-sync ruff check homeassistant/components/fortios tests/components/fortios
+All checks passed!

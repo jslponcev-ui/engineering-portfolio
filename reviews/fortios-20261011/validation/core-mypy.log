@@ -1,0 +1,2 @@
+uv run --no-sync mypy homeassistant/components/fortios
+Success: no issues found in 6 source files

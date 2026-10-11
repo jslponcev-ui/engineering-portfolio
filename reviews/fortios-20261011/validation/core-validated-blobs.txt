@@ -1,0 +1,4 @@
+c7c9130a8ad4d5bec05c76da80883957b8ba2847 homeassistant/components/fortios/__init__.py
+54425fcf6f3c5e0ec1a2262e0e5e686b67dc631f homeassistant/components/fortios/device_tracker.py
+72348531ebf33fd5d46dafe1dd201c73dad20b86 homeassistant/components/fortios/strings.json
+8b1d5188b4007fa99aeec3aa7d4c793f0a18289d tests/components/fortios/test_init.py

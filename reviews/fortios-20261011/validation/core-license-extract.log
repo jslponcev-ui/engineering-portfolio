@@ -1,0 +1,1 @@
+uv run --no-sync python -m script.licenses extract --output-file <validation-workspace>.json

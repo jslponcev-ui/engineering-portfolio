@@ -1,0 +1,13 @@
+core-coverage 0
+core-related-tests 0
+core-mypy 0
+core-ruff 0
+core-format 0
+core-pylint 0
+core-hassfest 0
+core-requirements 0
+core-license-extract 0
+core-licenses 0
+core-file-hooks 0
+core-global-mypy 2
+core-prek interrupted

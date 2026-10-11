@@ -1,0 +1,161 @@
+diff --git a/homeassistant/components/fortios/__init__.py b/homeassistant/components/fortios/__init__.py
+index 7a5d448f1f..c7c9130a8a 100644
+--- a/homeassistant/components/fortios/__init__.py
++++ b/homeassistant/components/fortios/__init__.py
+@@ -35,7 +35,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: FortiOSConfigEntry) -> b
+         raise ConfigEntryAuthFailed(
+             translation_domain=DOMAIN, translation_key="invalid_auth"
+         ) from err
+-    except (FortiOSError, UnsupportedVersion) as err:
++    except UnsupportedVersion as err:
++        raise ConfigEntryError(
++            translation_domain=DOMAIN, translation_key="unsupported_version"
++        ) from err
++    except FortiOSError as err:
+         raise ConfigEntryNotReady(
+             translation_domain=DOMAIN, translation_key="cannot_connect"
+         ) from err
+diff --git a/homeassistant/components/fortios/device_tracker.py b/homeassistant/components/fortios/device_tracker.py
+index e7a0d395ea..54425fcf6f 100644
+--- a/homeassistant/components/fortios/device_tracker.py
++++ b/homeassistant/components/fortios/device_tracker.py
+@@ -60,6 +60,7 @@ async def async_setup_scanner(
+             translation_placeholders={"host": config[CONF_HOST]},
+         )
+         return True
++    ir.async_delete_issue(hass, DOMAIN, f"yaml_import_{config[CONF_HOST]}")
+     ir.async_create_issue(
+         hass,
+         HOMEASSISTANT_DOMAIN,
+diff --git a/homeassistant/components/fortios/strings.json b/homeassistant/components/fortios/strings.json
+index 7e2a92910c..72348531eb 100644
+--- a/homeassistant/components/fortios/strings.json
++++ b/homeassistant/components/fortios/strings.json
+@@ -38,6 +38,9 @@
+     },
+     "unique_id_mismatch": {
+       "message": "The FortiGate at {host} does not match the configured device. Check the hostname or IP address."
++    },
++    "unsupported_version": {
++      "message": "[%key:component::fortios::config::error::unsupported_version%]"
+     }
+   },
+   "issues": {
+@@ -46,7 +49,7 @@
+       "title": "Remove leftover known devices for FortiOS"
+     },
+     "yaml_import_failed": {
+-      "description": "The FortiOS YAML configuration at `{host}` could not be imported. Check the host, API token and supported firmware version in `configuration.yaml`, then restart Home Assistant.",
++      "description": "The FortiOS YAML configuration at `{host}` could not be imported. FortiOS 6.4.3 or newer is required. Update incompatible firmware and check the host, API token and SSL verification setting in `configuration.yaml`, then restart Home Assistant to retry the import. Keep the FortiOS YAML configuration until you confirm that the import succeeded and a FortiOS config entry is available in Devices & services. Only then remove the FortiOS YAML block.",
+       "title": "FortiOS YAML import failed"
+     }
+   }
+diff --git a/tests/components/fortios/test_init.py b/tests/components/fortios/test_init.py
+index 74be862451..8b1d5188b4 100644
+--- a/tests/components/fortios/test_init.py
++++ b/tests/components/fortios/test_init.py
+@@ -1,19 +1,24 @@
+ """Test FortiOS legacy migration and authentication failures."""
+ 
+ from datetime import timedelta
+-from unittest.mock import MagicMock, patch
++from unittest.mock import AsyncMock, MagicMock, patch
+ 
+ from aiofortiosapi import FortiOSAuthenticationError, FortiOSConnectionError
+ from freezegun.api import FrozenDateTimeFactory
+ import pytest
+ 
+ from homeassistant.components.device_tracker.legacy import Device
+-from homeassistant.components.fortios.client import FortiOSDevice
++from homeassistant.components.fortios.client import FortiOSDevice, UnsupportedVersion
+ from homeassistant.components.fortios.const import DOMAIN
++from homeassistant.components.fortios.device_tracker import (
++    PLATFORM_SCHEMA,
++    async_setup_scanner,
++)
+ from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
+-from homeassistant.const import CONF_HOST, CONF_PLATFORM
++from homeassistant.const import CONF_HOST, CONF_PLATFORM, STATE_HOME
+ from homeassistant.core import HomeAssistant
+ from homeassistant.helpers import issue_registry as ir
++from homeassistant.helpers.translation import async_get_translations
+ from homeassistant.setup import async_setup_component
+ 
+ from .conftest import MAC, SERIAL, USER_INPUT
+@@ -71,6 +76,76 @@ async def test_yaml_import_failure(
+     )
+ 
+ 
++@pytest.mark.usefixtures("entity_registry_enabled_by_default")
++async def test_unsupported_firmware_and_recovery(
++    hass: HomeAssistant,
++    mock_config_entry: MockConfigEntry,
++    mock_client: MagicMock,
++) -> None:
++    """Show the firmware requirement without retrying, then recover after an upgrade."""
++    mock_config_entry.add_to_hass(hass)
++    mock_client.connect.side_effect = UnsupportedVersion
++    assert not await hass.config_entries.async_setup(mock_config_entry.entry_id)
++    await hass.async_block_till_done()
++    assert mock_config_entry.state is ConfigEntryState.SETUP_ERROR
++    assert mock_config_entry.error_reason_translation_key == "unsupported_version"
++    translations = await async_get_translations(hass, "en", "exceptions", {DOMAIN})
++    assert translations["component.fortios.exceptions.unsupported_version.message"] == (
++        "FortiOS 6.4.3 or newer is required"
++    )
++    mock_client.update.assert_not_called()
++    assert hass.states.async_all("device_tracker") == []
++    assert hass.config_entries.flow.async_progress() == []
++
++    mock_client.connect.side_effect = None
++    assert await hass.config_entries.async_reload(mock_config_entry.entry_id)
++    await hass.async_block_till_done()
++    assert mock_config_entry.state is ConfigEntryState.LOADED
++    assert hass.states.get("device_tracker.phone").state == STATE_HOME
++
++
++@pytest.mark.usefixtures(
++    "mock_device_tracker_conf", "entity_registry_enabled_by_default"
++)
++async def test_yaml_unsupported_firmware_and_recovery(
++    hass: HomeAssistant,
++    mock_client: MagicMock,
++    issue_registry: ir.IssueRegistry,
++) -> None:
++    """Keep YAML on a failed import and remove its failure repair after recovery."""
++    config = {CONF_PLATFORM: DOMAIN} | USER_INPUT
++    mock_client.connect.side_effect = UnsupportedVersion
++    assert await async_setup_component(
++        hass, "device_tracker", {"device_tracker": config}
++    )
++    await hass.async_block_till_done()
++    issue_id = f"yaml_import_{USER_INPUT[CONF_HOST]}"
++    issue = issue_registry.async_get_issue(DOMAIN, issue_id)
++    assert issue is not None
++    translations = await async_get_translations(hass, "en", "issues", {DOMAIN})
++    message = translations["component.fortios.issues.yaml_import_failed.description"]
++    assert "FortiOS 6.4.3 or newer is required" in message
++    assert "Keep the FortiOS YAML configuration until you confirm" in message
++    assert "Only then remove the FortiOS YAML block" in message
++    assert hass.config_entries.async_entries(DOMAIN) == []
++    assert (
++        issue_registry.async_get_issue("homeassistant", f"deprecated_yaml_{DOMAIN}")
++        is None
++    )
++
++    mock_client.connect.side_effect = None
++    assert await async_setup_scanner(hass, PLATFORM_SCHEMA(config), AsyncMock())
++    await hass.async_block_till_done()
++    entry = hass.config_entries.async_entries(DOMAIN)[0]
++    assert entry.state is ConfigEntryState.LOADED
++    assert hass.states.get("device_tracker.phone").state == STATE_HOME
++    assert issue_registry.async_get_issue(DOMAIN, issue_id) is None
++    assert (
++        issue_registry.async_get_issue("homeassistant", f"deprecated_yaml_{DOMAIN}")
++        is not None
++    )
++
++
+ @pytest.mark.usefixtures("mock_client")
+ async def test_legacy_conflict(
+     hass: HomeAssistant,
