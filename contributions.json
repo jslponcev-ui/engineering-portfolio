@@ -1,7 +1,63 @@
 {
-  "verified_on": "2026-10-09",
+  "verified_on": "2026-11-22",
   "inclusion_policy": "completed_approved_merged",
   "contributions": [
+    {
+      "project": "home-assistant/core",
+      "pr": 186166,
+      "status": "merged",
+      "merged_at": "2026-11-12T16:09:22Z",
+      "merge_commit": "7a5721389fbf45ad71bcaa7dd9217f54a2d29d21"
+    },
+    {
+      "project": "home-assistant/core",
+      "pr": 188228,
+      "status": "merged",
+      "merged_at": "2026-10-27T19:15:19Z",
+      "merge_commit": "1f9acfa545e3cc8d5862a44050432e6487cd6ae9"
+    },
+    {
+      "project": "home-assistant/core",
+      "pr": 188407,
+      "status": "merged",
+      "merged_at": "2026-10-26T21:18:09Z",
+      "merge_commit": "f6f1534218684bcfd48a1c989b256a65c7875392"
+    },
+    {
+      "project": "home-assistant/core",
+      "pr": 188224,
+      "status": "merged",
+      "merged_at": "2026-10-23T15:10:27Z",
+      "merge_commit": "4fba9992a73fafb25022bc5d2b635b180c917a80"
+    },
+    {
+      "project": "home-assistant/core",
+      "pr": 188036,
+      "status": "merged",
+      "merged_at": "2026-10-23T11:43:00Z",
+      "merge_commit": "15e7ac4fff3f646b011892750a112e9a8e02c133"
+    },
+    {
+      "project": "home-assistant/core",
+      "pr": 187978,
+      "status": "merged",
+      "merged_at": "2026-10-22T12:14:15Z",
+      "merge_commit": "8a75c7d26dee678983db83ae50782c25f0a56637"
+    },
+    {
+      "project": "home-assistant/core",
+      "pr": 184276,
+      "status": "merged",
+      "merged_at": "2026-10-19T19:45:30Z",
+      "merge_commit": "dabd7889cb4770bc035209e885baf8d32ce51717"
+    },
+    {
+      "project": "home-assistant/core",
+      "pr": 178492,
+      "status": "merged",
+      "merged_at": "2026-10-12T02:13:29Z",
+      "merge_commit": "489eeff371a258cf060f82fbf10d55973296abaf"
+    },
     {
       "project": "home-assistant/core",
       "pr": 185519,
