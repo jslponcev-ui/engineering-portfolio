@@ -8,10 +8,12 @@ I contribute to [Home Assistant Core](https://github.com/home-assistant/core), w
 
 ## Open-source contribution record
 
-**7 merged pull requests in Home Assistant Core**, individually linked below. Counts refer to PRs, not years of professional employment or a quantified production impact.
+**9 merged pull requests in Home Assistant Core**, individually linked below. Counts refer to PRs, not years of professional employment or a quantified production impact.
 
 | Area | Accepted change | Engineering focus |
 | --- | --- | --- |
+| Reolink playback proxy | [#186166](https://github.com/home-assistant/core/pull/186166): Preserve HTTP 503 responses | Forward `Retry-After` when present and cover recovery in regression tests |
+| Template state filter | [#188228](https://github.com/home-assistant/core/pull/188228): Evaluate `states` at render time | Prevent stale values and preserve dependency tracking with regression tests |
 | Recorder / Statistics | [#188407 — Fix statistics initialization selecting oldest history samples](https://github.com/home-assistant/core/pull/188407) | SQL query ordering, bounded history, cache behavior and regression coverage |
 | Template tracker tests | [#188224 — Name tracker preview test cases explicitly](https://github.com/home-assistant/core/pull/188224) | Test readability and parameterization |
 | Template device tracker | [#188036 — Fix zone calculation in device tracker previews](https://github.com/home-assistant/core/pull/188036) | Consistent preview/state logic and regression tests |
@@ -43,7 +45,7 @@ These contributions vary in scope: some fix runtime behavior, while #188224 impr
 
 ## Verification and representation
 
-All seven PRs are publicly marked merged in the linked upstream repository. Test counts and CI status are stated only where linked to a specific implementation. Other projects and unmerged work are intentionally excluded from the accepted-contributions table.
+All nine PRs are publicly marked merged in the linked upstream repository. Test counts and CI status are stated only where linked to a specific implementation. Other projects and unmerged work are intentionally excluded from the accepted-contributions table.
 
 AI tools assisted the development workflow. The external evidence is the code, public review and test history—not a claim of unaided implementation. A candidate using this portfolio should be prepared to explain the underlying design and tests during an interview.
 
