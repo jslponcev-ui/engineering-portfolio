@@ -6,10 +6,12 @@ Contribuciones aceptadas en [Home Assistant Core](https://github.com/home-assist
 
 [English version](README.md) · [PR fusionados verificables](https://github.com/home-assistant/core/pulls?q=is%3Apr+is%3Amerged+author%3Ajslponcev-ui)
 
-## Siete pull requests fusionados
+## Nueve pull requests fusionados
 
 | Área | Contribución aceptada | Habilidad técnica |
 | --- | --- | --- |
+| Proxy de reproducción Reolink | [#186166](https://github.com/home-assistant/core/pull/186166): Conservación de respuestas HTTP 503 | Reenvío de `Retry-After` cuando está presente y pruebas de recuperación |
+| Filtro de estados en plantillas | [#188228](https://github.com/home-assistant/core/pull/188228): Evaluación de `states` al renderizar | Evita valores desactualizados y conserva el seguimiento de dependencias |
 | Recorder / Statistics | [#188407 — Corrección de muestras históricas más antiguas](https://github.com/home-assistant/core/pull/188407) | Consultas SQL, orden, caché y regresiones |
 | Pruebas de Template | [#188224 — Casos de prueba explícitos para tracker](https://github.com/home-assistant/core/pull/188224) | Legibilidad y parametrización |
 | Template tracker | [#188036 — Corrección de zona en vistas previas](https://github.com/home-assistant/core/pull/188036) | Consistencia de estado y pruebas |
@@ -36,7 +38,7 @@ Python; integraciones asíncronas; manejo de errores y datos incompletos; consis
 
 ## Política de evidencia
 
-Los siete PR están fusionados en el repositorio oficial y pueden verificarse con los enlaces. Las cifras de pruebas o CI solo se atribuyen a las implementaciones documentadas. Este portafolio no inventa experiencia laboral ni métricas de impacto.
+Los nueve PR están fusionados en el repositorio oficial y pueden verificarse con los enlaces. Las cifras de pruebas o CI solo se atribuyen a las implementaciones documentadas. Este portafolio no inventa experiencia laboral ni métricas de impacto.
 
 Se utilizaron herramientas de IA durante el desarrollo. La evidencia es el código, las pruebas y la revisión pública. Quien presente este trabajo en una entrevista debe poder explicar las decisiones técnicas y su validación.
 
