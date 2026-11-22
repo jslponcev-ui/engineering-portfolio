@@ -4,8 +4,6 @@ Start: 2026-10-11. Target roles: Junior Data & Automation Analyst, SQL/Data Qual
 
 ## Evidence already available
 - [Accepted Home Assistant contribution](../README.md): Python, async updates, regression tests, upstream review.
-- [Smart Device Async Bridge](https://github.com/jslponcev-ui/smart-device-async-bridge): async Python, validation and event handling. Verify tests and runnable demo before claiming performance.
-- UNTIL / STILL: private Android products. Publish sanitized case studies only with owner approval.
 
 ## Deliverables and acceptance criteria
 - Day 1: repository inventory, evidence matrix, gap analysis, and role-specific positioning.
@@ -20,4 +18,4 @@ Start: 2026-10-11. Target roles: Junior Data & Automation Analyst, SQL/Data Qual
 Do not invent clients, paid experience, test results, deployment status, PR acceptance, or impact metrics. Verify all links, tests and demos. Do not expose private repository contents or credentials. Separate AI assistance from independently explainable technical work.
 
 ## Immediate next step
-Audit the existing public Python case studies and select the smallest end-to-end SQL + Python + CI demonstration. Track outcomes here.
+Review the documented Home Assistant contributions and select the smallest reproducible example of SQL, Python, and regression testing. Track outcomes here.
